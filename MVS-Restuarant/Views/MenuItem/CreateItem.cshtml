@@ -1,0 +1,35 @@
+﻿@model MVS_Restuarant.Models.MenuItem
+
+<form asp-action="CreateItem" method="post" enctype="multipart/form-data">
+    <div class="col-md-12 container justify-content-center">
+        <div class="form-group row d-flex col-md-10">
+            <div class="col-md-6">
+                <label asp-for="ItemName">Item Name</label>
+                <input asp-for="ItemName" class="form-control" />
+                <span asp-validation-for="ItemName" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="ItemDescription">Description</label>
+                <input asp-for="ItemDescription" class="form-control" />
+                <span asp-validation-for="ItemDescription" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="form-group row d-flex col-md-10">
+            <div class="col-md-6">
+                <label asp-for="Category">Category</label>
+                <input asp-for="Category" class="form-control" />
+                <span asp-validation-for="Category" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="ItemPrice">Price</label>
+                <input asp-for="ItemPrice" class="form-control" />
+                <span asp-validation-for="ItemPrice" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="form-group col-md-6">
+            <label>Upload image</label>
+            <input type="file" id="ImageFile" name="imageFile" class="form-control" />
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+</form>
