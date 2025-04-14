@@ -14,21 +14,29 @@ namespace MVS_Restuarant.Controllers
         {
             _context = context;
         }
-        //Menu
+
+        // Display the menu items
         public IActionResult Menu()
         {
-            IEnumerable<MenuItem> menuItems = _context.MenuItems;
+            IEnumerable<MenuItem> menuItems = _context.MenuItems.Where(m => m.IsAvailable);
             return View(menuItems);
         }
 
-        public List<CartItem> Index()
+        // Display the cart
+        public IActionResult Index()
         {
-            var cart = HttpContext.Session.GetString("Cart");
-            return string.IsNullOrEmpty(cart) ? new List<CartItem>() : JsonConvert.DeserializeObject<List<CartItem>>(cart);
+            var cart = GetCartFromSession();
+            return View(cart);
         }
 
-        //Add an Item to the cart
-        public async Task<IActionResult> AddToCart(int menuItemId, int quantity)
+        public IActionResult AddToCart()
+        {
+            return View();
+        }
+        // Add an item to the cart
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddToCart(int menuItemId, int quantity = 1)
         {
             var menuItem = await _context.MenuItems.FindAsync(menuItemId);
             if (menuItem == null)
@@ -37,8 +45,7 @@ namespace MVS_Restuarant.Controllers
             }
 
             // Retrieve or initialize the cart from session
-            var cart = HttpContext.Session.GetString("Cart");
-            List<CartItem> cartItems = string.IsNullOrEmpty(cart) ? new List<CartItem>() : JsonConvert.DeserializeObject<List<CartItem>>(cart);
+            var cartItems = GetCartFromSession();
 
             // Check if the item already exists in the cart
             var existingItem = cartItems.FirstOrDefault(c => c.MenuItemId == menuItemId);
@@ -54,25 +61,91 @@ namespace MVS_Restuarant.Controllers
                 {
                     MenuItemId = menuItem.ItemId,
                     ItemName = menuItem.ItemName,
+                    ItemDescription = menuItem.ItemDescription,
                     Quantity = quantity,
                     ItemPrice = menuItem.ItemPrice,
-                    TotalPrice = quantity * menuItem.ItemPrice
+                    TotalPrice = quantity * menuItem.ItemPrice,
+                    ImageData = menuItem.ImageData,
+                    ContentType = menuItem.ContentType
                 });
             }
 
             // Save the updated cart back to session
-            HttpContext.Session.SetString("Cart", JsonConvert.SerializeObject(cartItems));
+            SaveCartToSession(cartItems);
 
-            return RedirectToAction("Index");
+            // Add success message
+            TempData["SuccessMessage"] = $"{menuItem.ItemName} added to your cart.";
+
+            // Redirect to the menu or cart based on preference
+            return RedirectToAction("Menu");
         }
 
         // Remove an item from the cart
         public IActionResult RemoveFromCart(int menuItemId)
         {
-            var cart = TempData["Cart"] as List<CartItem> ?? new List<CartItem>();
-            cart = cart.Where(c => c.MenuItemId != menuItemId).ToList();
-            TempData["Cart"] = cart;
+            var cartItems = GetCartFromSession();
+
+            // Find and remove the item
+            var itemToRemove = cartItems.FirstOrDefault(c => c.MenuItemId == menuItemId);
+            if (itemToRemove != null)
+            {
+                cartItems.Remove(itemToRemove);
+                SaveCartToSession(cartItems);
+                TempData["SuccessMessage"] = "Item removed from cart.";
+            }
+
             return RedirectToAction("Index");
+        }
+
+        // Update quantity of an item in the cart
+        public IActionResult UpdateQuantity(int menuItemId, int quantity)
+        {
+            if (quantity <= 0)
+            {
+                return RedirectToAction("RemoveFromCart", new { menuItemId });
+            }
+
+            var cartItems = GetCartFromSession();
+            var item = cartItems.FirstOrDefault(c => c.MenuItemId == menuItemId);
+
+            if (item != null)
+            {
+                item.Quantity = quantity;
+                item.TotalPrice = quantity * item.ItemPrice;
+                SaveCartToSession(cartItems);
+            }
+
+            return RedirectToAction("Index");
+        }
+
+        // Clear the entire cart
+        public IActionResult ClearCart()
+        {
+            HttpContext.Session.Remove("Cart");
+            TempData["SuccessMessage"] = "Your cart has been cleared.";
+            return RedirectToAction("Index");
+        }
+
+        // Helper method to get cart from session
+        private List<CartItem> GetCartFromSession()
+        {
+            var cart = HttpContext.Session.GetString("Cart");
+            return string.IsNullOrEmpty(cart)
+                ? new List<CartItem>()
+                : JsonConvert.DeserializeObject<List<CartItem>>(cart);
+        }
+
+        // Helper method to save cart to session
+        private void SaveCartToSession(List<CartItem> cartItems)
+        {
+            HttpContext.Session.SetString("Cart", JsonConvert.SerializeObject(cartItems));
+        }
+        [HttpGet]
+        public IActionResult GetCartCount()
+        {
+            var cartItems = GetCartFromSession();
+            int count = cartItems.Sum(item => item.Quantity);
+            return Json(count);
         }
     }
 }

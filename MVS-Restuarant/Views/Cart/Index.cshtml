@@ -1,34 +1,195 @@
 ﻿@model List<MVS_Restuarant.Models.CartItem>
+@{
+    ViewData["Title"] = "Your Cart";
+    decimal cartTotal = Model.Sum(item => item.TotalPrice);
+}
 
-<h2>Your Cart</h2>
+<div class="container py-5">
+    <div class="row justify-content-center mb-4">
+        <div class="col-lg-8 text-center">
+            <h1 class="display-5 fw-bold">Your Cart</h1>
+            <p class="text-muted">Review your items before proceeding to checkout</p>
+        </div>
+    </div>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>Item Name</th>
-            <th>Quantity</th>
-            <th>Price</th>
-            <th>Total Price</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
-            <tr>
-                <td>@item.ItemName</td>
-                <td>@item.Quantity</td>
-                <td>@item.ItemPrice.ToString("C")</td>
-                <td>@item.TotalPrice.ToString("C")</td>
-                <td>
-                    <form asp-action="RemoveFromCart" method="post">
-                        <input type="hidden" name="menuItemId" value="@item.MenuItemId" />
-                        <button type="submit" class="btn btn-danger">Remove</button>
-                    </form>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+            <i class="bi bi-check-circle me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
 
-<a asp-action="Checkout" class="btn btn-primary">Checkout</a>
+    @if (Model.Any())
+    {
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Cart Items (@Model.Count)</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col" width="100">Image</th>
+                                        <th scope="col">Item</th>
+                                        <th scope="col" class="text-center">Price</th>
+                                        <th scope="col" class="text-center">Quantity</th>
+                                        <th scope="col" class="text-end">Total</th>
+                                        <th scope="col" width="50"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model)
+                                    {
+                                        <tr>
+                                            <td>
+                                                @if (item.ImageData != null)
+                                                {
+                                                    <img src="data:@item.ContentType;base64,@(Convert.ToBase64String(item.ImageData))"
+                                                         class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;"
+                                                         alt="@item.ItemName" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="bg-light d-flex align-items-center justify-content-center"
+                                                         style="width: 60px; height: 60px;">
+                                                        <i class="bi bi-card-image text-muted"></i>
+                                                    </div>
+                                                }
+                                            </td>
+                                            <td>
+                                                <h6 class="mb-0">@item.ItemName</h6>
+                                                <small class="text-muted">@(item.ItemDescription?.Length > 60 ? item.ItemDescription.Substring(0, 60) + "..." : item.ItemDescription)</small>
+                                            </td>
+                                            <td class="text-center">R @item.ItemPrice.ToString("0.00")</td>
+                                            <td class="text-center">
+                                                <div class="d-flex justify-content-center">
+                                                    <form asp-action="UpdateQuantity" asp-controller="Cart" method="post" class="d-flex align-items-center quantity-form">
+                                                        <input type="hidden" name="menuItemId" value="@item.MenuItemId" />
+                                                        <div class="input-group input-group-sm" style="width: 100px;">
+                                                            <button class="btn btn-outline-secondary quantity-btn" type="button" data-action="decrease">−</button>
+                                                            <input type="number" name="quantity" class="form-control text-center quantity-input"
+                                                                   value="@item.Quantity" min="1" max="10" onchange="this.form.submit()" />
+                                                            <button class="btn btn-outline-secondary quantity-btn" type="button" data-action="increase">+</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                            <td class="text-end fw-bold">R @item.TotalPrice.ToString("0.00")</td>
+                                            <td>
+                                                <a asp-action="RemoveFromCart" asp-controller="Cart" asp-route-menuItemId="@item.MenuItemId"
+                                                   class="btn btn-sm btn-outline-danger" title="Remove item">
+                                                    <i class="bi bi-trash"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+                        <a asp-action="Menu" asp-controller="Cart" class="btn btn-outline-primary">
+                            <i class="bi bi-arrow-left me-2"></i>Continue Shopping
+                        </a>
+                        <a asp-action="ClearCart" asp-controller="Cart" class="btn btn-outline-danger"
+                           onclick="return confirm('Are you sure you want to clear your cart?');">
+                            <i class="bi bi-trash me-2"></i>Clear Cart
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Order Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal</span>
+                            <span>R @cartTotal.ToString("0.00")</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Delivery</span>
+                            <span>R 30.00</span>
+                        </div>
+                        <hr />
+                        <div class="d-flex justify-content-between mb-4 fw-bold">
+                            <span>Total</span>
+                            <span>R @((cartTotal + 30).ToString("0.00"))</span>
+                        </div>
+
+                        <form>
+                            <div class="mb-3">
+                                <label for="promoCode" class="form-label">Promo Code</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="promoCode" placeholder="Enter code">
+                                    <button class="btn btn-outline-secondary" type="button">Apply</button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <button class="btn btn-success w-100 mt-2">
+                            <i class="bi bi-credit-card me-2"></i>Proceed to Checkout
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h6 class="mb-3">Need Help?</h6>
+                        <p class="small text-muted mb-0">For assistance with your order, contact our customer service:</p>
+                        <p class="small mb-0"><i class="bi bi-telephone me-2"></i>(123) 456-7890</p>
+                        <p class="small"><i class="bi bi-envelope me-2"></i>support@restaurant.com</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="bi bi-cart-x" style="font-size: 4rem; color: #6c757d;"></i>
+            </div>
+            <h3>Your cart is empty</h3>
+            <p class="text-muted mb-4">Looks like you haven't added any items to your cart yet.</p>
+            <a asp-action="Menu" asp-controller="Cart" class="btn btn-primary btn-lg">
+                <i class="bi bi-arrow-left me-2"></i>Browse Our Menu
+            </a>
+        </div>
+    }
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Handle quantity buttons
+        document.querySelectorAll('.quantity-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                const form = this.closest('.quantity-form');
+                const input = form.querySelector('.quantity-input');
+                const currentValue = parseInt(input.value);
+
+                if (this.dataset.action === 'increase') {
+                    if (currentValue < 10) {
+                        input.value = currentValue + 1;
+                        form.submit();
+                    }
+                } else {
+                    if (currentValue > 1) {
+                        input.value = currentValue - 1;
+                        form.submit();
+                    } else {
+                        // If trying to decrease below 1, redirect to remove
+                        const menuItemId = form.querySelector('input[name="menuItemId"]').value;
+                        window.location.href = `/Cart/RemoveFromCart?menuItemId=${menuItemId}`;
+                    }
+                }
+            });
+        });
+    });
+</script>

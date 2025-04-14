@@ -5,14 +5,22 @@ using System.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//Configure Database context
+// Configure Database context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
-
+builder.Services.AddSession();
+// Add session services
+builder.Services.AddDistributedMemoryCache(); // Use memory cache for session storage
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // Session timeout
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true; // Make the session cookie essential
+});
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -29,10 +37,14 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
+// Enable session middleware
+app.UseSession();
 app.UseRouting();
 
+app.UseAuthentication(); // Add authentication middleware
 app.UseAuthorization();
+
+
 
 app.MapControllerRoute(
     name: "default",

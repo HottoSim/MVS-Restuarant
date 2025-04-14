@@ -1,51 +1,171 @@
 ﻿@model IEnumerable<MVS_Restuarant.Models.MenuItem>
 @{
-    ViewData["Title"] = "Menu Items";
+    ViewData["Title"] = "Our Menu";
 }
-<head>
-    <link href="~/css/menu.css" rel="stylesheet" />
-</head>
 
-<div class="container mt-5">
-    <h2 class="text-center mb-4">Our Menu</h2>
-    <div class="row">
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 text-center mb-5">
+            <h1 class="display-4 fw-bold">Our Menu</h1>
+            <p class="lead text-muted">Discover our delicious selection of dishes prepared with fresh ingredients</p>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+            <i class="bi bi-check-circle me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="categoryDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                Filter by Category
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="categoryDropdown">
+                <li><a class="dropdown-item" href="#" data-category="all">All Items</a></li>
+                @foreach (var category in Model.Select(i => i.Category).Distinct())
+                {
+                    <li><a class="dropdown-item" href="#" data-category="@category">@category</a></li>
+                }
+            </ul>
+        </div>
+
+        <a href="@Url.Action("Index", "Cart")" class="btn btn-primary position-relative">
+            <i class="bi bi-cart3 me-2"></i>View Cart
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-count">
+                0
+            </span>
+        </a>
+    </div>
+
+    <div class="row g-4 menu-items-container">
         @foreach (var item in Model)
         {
-            <div class="col-md-4 mb-4">
-                <div class="card shadow-sm">
-                    <!-- Display Item Image -->
-                    <img src="data:@item.ContentType;base64,@(Convert.ToBase64String(item.ImageData))" class="card-img-top img-fluid" alt="@item.ItemName" />
+            <div class="col-lg-6 col-xl-4 menu-item" data-category="@item.Category">
+                <div class="card h-100 shadow-sm border-0 menu-card">
+                    <div class="position-relative">
+                        <img src="data:@item.ContentType;base64,@(Convert.ToBase64String(item.ImageData))"
+                             class="card-img-top" style="height: 220px; object-fit: cover;" alt="@item.ItemName" />
+                        <span class="position-absolute top-0 start-0 badge bg-dark m-2 px-2 py-1">
+                            @item.Category
+                        </span>
+                    </div>
 
-                    <!-- Card Body -->
                     <div class="card-body">
-                        <h5 class="card-title">@item.ItemName</h5>
-                        <p class="card-text">@item.ItemDescription</p>
-                        <p class="text-muted"><strong>Category:</strong> @item.Category</p>
-                        <p class="text-primary"><strong>Price:</strong> R @item.ItemPrice.ToString("0.00")</p>
-
-                        <!-- Availability -->
-                        @if (item.IsAvailable)
-                        {
-                            <span class="badge bg-success">Available</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-danger">Out of Stock</span>
-                        }
-
-                        <!-- Action Button with ItemId and Quantity -->
-                        <div class="mt-3">
-                            <form asp-action="AddToCart" asp-controller="Cart" method="post">
-                                <!-- Hidden Fields for ItemId and Quantity -->
-                                <input type="hidden" name="menuItemId" value="@item.ItemId" />
-                                <input type="number" name="quantity" value="1" min="1" class="form-control mb-2" />
-
-                                <button type="submit" class="btn btn-primary w-100">Add to cart</button>
-                            </form>
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title mb-0 fw-bold">@item.ItemName</h5>
+                            <span class="price-badge ms-2">R @item.ItemPrice.ToString("0.00")</span>
                         </div>
+
+                        <p class="card-text text-muted small">@item.ItemDescription</p>
+                    </div>
+
+                    <div class="card-footer bg-white p-3 border-top-0">
+                        <form asp-action="AddToCart" asp-controller="Cart" method="post" class="d-flex align-items-center">
+                            <input type="hidden" name="menuItemId" value="@item.ItemId" />
+                            <div class="input-group input-group-sm me-2" style="width: 100px;">
+                                <button class="btn btn-outline-secondary quantity-btn" type="button" data-action="decrease">−</button>
+                                <input type="number" name="quantity" class="form-control text-center quantity-input" value="1" min="1" max="10" />
+                                <button class="btn btn-outline-secondary quantity-btn" type="button" data-action="increase">+</button>
+                            </div>
+                            <button type="submit" class="btn btn-primary flex-grow-1">
+                                <i class="bi bi-cart-plus me-1"></i>Add to Cart
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
         }
     </div>
+
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="bi bi-emoji-frown" style="font-size: 3rem;"></i>
+            </div>
+            <h3>No menu items available</h3>
+            <p class="text-muted">Please check back later for our delicious offerings!</p>
+        </div>
+    }
 </div>
+
+<style>
+    .menu-card {
+        transition: transform 0.2s;
+    }
+
+        .menu-card:hover {
+            transform: translateY(-5px);
+        }
+
+    .price-badge {
+        background-color: #28a745;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-weight: bold;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Handle quantity buttons
+        document.querySelectorAll('.quantity-btn').forEach(button => {
+            button.addEventListener('click', function () {
+                const input = this.closest('.input-group').querySelector('.quantity-input');
+                const currentValue = parseInt(input.value);
+
+                if (this.dataset.action === 'increase') {
+                    if (currentValue < 10) {
+                        input.value = currentValue + 1;
+                    }
+                } else {
+                    if (currentValue > 1) {
+                        input.value = currentValue - 1;
+                    }
+                }
+            });
+        });
+
+        // Handle category filtering
+        document.querySelectorAll('[data-category]').forEach(element => {
+            element.addEventListener('click', function (e) {
+                e.preventDefault();
+                const category = this.dataset.category;
+
+                document.querySelectorAll('.menu-item').forEach(item => {
+                    if (category === 'all' || item.dataset.category === category) {
+                        item.style.display = '';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+
+                // Update dropdown button text
+                document.getElementById('categoryDropdown').textContent =
+                    category === 'all' ? 'Filter by Category' : category;
+            });
+        });
+
+        // Update cart count from session
+        updateCartCount();
+
+        function updateCartCount() {
+            fetch('/Cart/GetCartCount')
+                .then(response => response.json())
+                .then(count => {
+                    const countElement = document.querySelector('.cart-count');
+                    countElement.textContent = count;
+                    countElement.style.display = count > 0 ? 'block' : 'none';
+                })
+                .catch(() => {
+                    // If endpoint doesn't exist, hide the badge
+                    document.querySelector('.cart-count').style.display = 'none';
+                });
+        }
+    });
+</script>
