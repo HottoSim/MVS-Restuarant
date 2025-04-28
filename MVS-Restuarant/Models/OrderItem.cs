@@ -8,9 +8,9 @@ namespace MVS_Restuarant.Models
         [Key]
         public int OrderItemId { get; set; }
 
-        [ForeignKey("Order")]
-        public int OrderId { get; set; } // Reference to the order
-        public virtual Order Order { get; set; } // Navigation property
+        //[ForeignKey("Order")]
+        //public int OrderId { get; set; } // Reference to the order
+        //public virtual Order Order { get; set; } // Navigation property
 
         [ForeignKey("MenuItem")]
         public int MenuItemId { get; set; } // Reference to the menu item
